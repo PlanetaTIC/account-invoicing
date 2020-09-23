@@ -33,6 +33,12 @@ class AccountInvoiceLine(models.Model):
         default=0.0,
     )
 
+    def _apply_taxes(self, tax, price):
+        if tax.price_include:
+            factor_tax = tax.price_include and (1 + tax.amount / 100) or 1.0
+            return price * factor_tax
+        return price
+
     # Each iteration of api.multi is done into a different cache!
     # As we're using cache to define a value into discount field, we have
     # to stay into the same cache. So we can not use api.multi in this case.
@@ -54,7 +60,10 @@ class AccountInvoiceLine(models.Model):
         if discount:
             prec = self.env['decimal.precision'].precision_get('Product Price')
             expected = (1. - discount / 100.) * self.price_unit * self.quantity
-            if 0 != float_compare(self.price_subtotal, expected, precision_digits=prec):
+            price_subtotal = 0.0
+            for tax in self.invoice_line_tax_ids:
+                price_subtotal += self._apply_taxes(tax, self.price_subtotal)
+            if 0 != float_compare(price_subtotal, expected, precision_digits=prec):
                 self._compute_price()
 
     def _get_triple_discount(self):
