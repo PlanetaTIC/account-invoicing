@@ -63,8 +63,9 @@ class AccountInvoiceLine(models.Model):
             price_subtotal = 0.0
             for tax in self.invoice_line_tax_ids:
                 price_subtotal += self._apply_taxes(tax, self.price_subtotal)
-            if 0 != float_compare(price_subtotal, expected, precision_digits=prec)\
-                    and abs(price_subtotal - expected) > 0.01:
+            if 0 != float_compare(
+                        price_subtotal, expected, precision_digits=prec)\
+                    and round(abs(price_subtotal - expected), 2) > 0.01:
                 self._compute_price()
 
     def _get_triple_discount(self):
